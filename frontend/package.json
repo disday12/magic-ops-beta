@@ -1,9 +1,13 @@
+```json
 {
   "name": "disney-ops-planner-v25-live-escape-finder",
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start": "vite --host 0.0.0.0"
+    "start": "vite --host 0.0.0.0",
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
@@ -12,3 +16,4 @@
     "react-dom": "latest"
   }
 }
+```
