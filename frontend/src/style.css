@@ -1331,3 +1331,31 @@ pre{white-space:pre-wrap;background:#07111f;border:1px solid #273449;border-radi
     height:34px;
   }
 }
+
+/* Visible Optimize Route result box */
+.optimizationResultBox{
+  margin:14px 0;
+  padding:16px;
+  border-radius:20px;
+  background:rgba(7,17,31,.78);
+  border:1px solid rgba(251,191,36,.28);
+}
+.optimizationResultBox.changed{
+  background:linear-gradient(135deg, rgba(20,83,45,.34), rgba(7,17,31,.88));
+  border-color:rgba(34,197,94,.34);
+}
+.optimizationResultBox.unchanged{
+  background:linear-gradient(135deg, rgba(120,53,15,.32), rgba(7,17,31,.88));
+  border-color:rgba(251,191,36,.32);
+}
+.optimizationResultBox h3{
+  margin:0 0 8px;
+  color:#fde68a;
+}
+.optimizationResultBox p{
+  color:#dbeafe;
+  font-weight:800;
+}
+.optimizationResultBox li{
+  margin-bottom:6px;
+}
