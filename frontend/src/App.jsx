@@ -707,14 +707,33 @@ function App() {
   const [aiTripPlan, setAiTripPlan] = useState(null);
   const [liveQuestion, setLiveQuestion] = useState('My kid is melting down and it is raining. What should we do?');
   const [liveAnswer, setLiveAnswer] = useState(null);
-  const [liveRoute, setLiveRoute] = useState([]);
+  const [liveRoutesByDate, setLiveRoutesByDate] = useState({});
+  const [selectedLiveDate, setSelectedLiveDate] = useState('');
     function update(key, value) { setForm(prev => ({ ...prev, [key]: value })); }
 
   function generateAITripPlan() {
     setAiTripPlan(buildAITripPlan(aiTripPrompt, form));
   }
 
-  function addRouteStop(type) {
+  function getActiveRouteDate() {
+  if (selectedLiveDate) return selectedLiveDate;
+  return plan?.days?.[0]?.date || '';
+}
+
+function getActiveRoute() {
+  const date = getActiveRouteDate();
+  return liveRoutesByDate[date] || [];
+}
+
+function getActiveRouteDay() {
+  const date = getActiveRouteDate();
+  return plan?.days?.find(d => d.date === date) || plan?.days?.[0] || null;
+}
+
+function addRouteStop(type) {
+  const date = getActiveRouteDate();
+  if (!date) return alert('Generate or load a trip first so this route can attach to a trip day.');
+
   const newStop = {
     id: Date.now(),
     type,
@@ -725,36 +744,56 @@ function App() {
     lightningEnd: '',
     done: false
   };
-  setLiveRoute(prev => [...prev, newStop]);
+
+  setLiveRoutesByDate(prev => ({
+    ...prev,
+    [date]: [...(prev[date] || []), newStop]
+  }));
 }
 
 function updateRouteStop(id, field, value) {
-  setLiveRoute(prev =>
-    prev.map(stop =>
+  const date = getActiveRouteDate();
+
+  setLiveRoutesByDate(prev => ({
+    ...prev,
+    [date]: (prev[date] || []).map(stop =>
       stop.id === id ? { ...stop, [field]: value } : stop
     )
-  );
+  }));
 }
 
 function removeRouteStop(id) {
-  setLiveRoute(prev => prev.filter(stop => stop.id !== id));
+  const date = getActiveRouteDate();
+
+  setLiveRoutesByDate(prev => ({
+    ...prev,
+    [date]: (prev[date] || []).filter(stop => stop.id !== id)
+  }));
 }
 
 function moveRouteStop(id, direction) {
-  setLiveRoute(prev => {
-    const index = prev.findIndex(stop => stop.id === id);
-    if (index < 0) return prev;
-    const nextIndex = index + direction;
-    if (nextIndex < 0 || nextIndex >= prev.length) return prev;
+  const date = getActiveRouteDate();
 
-    const copy = [...prev];
-    [copy[index], copy[nextIndex]] = [copy[nextIndex], copy[index]];
-    return copy;
+  setLiveRoutesByDate(prev => {
+    const route = [...(prev[date] || [])];
+    const index = route.findIndex(stop => stop.id === id);
+    if (index < 0) return prev;
+
+    const nextIndex = index + direction;
+    if (nextIndex < 0 || nextIndex >= route.length) return prev;
+
+    [route[index], route[nextIndex]] = [route[nextIndex], route[index]];
+
+    return {
+      ...prev,
+      [date]: route
+    };
   });
 }
 
 function mapSearch(stop) {
-  const query = encodeURIComponent(`${stop.title} ${plan?.days?.[0]?.park || 'Walt Disney World'}`);
+  const activeDay = getActiveRouteDay();
+  const query = encodeURIComponent(`${stop.title} ${activeDay?.park || 'Walt Disney World'}`);
   window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
 }
   
@@ -1230,6 +1269,21 @@ function mapSearch(stop) {
 
             <div className="panel liveRouteBuilder">
   <h2>🧭 LIVE Day Route Builder</h2>
+
+  <div className="liveDateSelector">
+    <label>Select Trip Day</label>
+    <select
+      value={getActiveRouteDate()}
+      onChange={e => setSelectedLiveDate(e.target.value)}
+    >
+      {(plan?.days || []).map((day, i) => (
+        <option value={day.date} key={day.date}>
+          Day {i + 1} — {day.date} — {day.park}
+        </option>
+      ))}
+    </select>
+  </div>
+
   <p className="softText">
     Build today’s real park route. Add rides, Lightning Lanes, meals, shows, breaks, and transportation.
   </p>
@@ -1243,12 +1297,12 @@ function mapSearch(stop) {
     <button onClick={() => addRouteStop('Transportation')}>+ Transportation</button>
   </div>
 
-  {liveRoute.length === 0 && (
+  {getActiveRoute().length === 0 && (
     <p className="softText">No stops yet. Add your first ride, meal, or Lightning Lane.</p>
   )}
 
   <div className="routeList">
-    {liveRoute.map((stop, index) => (
+    {getActiveRoute().map((stop, index) => (
       <div className={`routeCard ${stop.done ? 'routeDone' : ''}`} key={stop.id}>
         <div className="routeCardHeader">
           <span>{index + 1}. {stop.type}</span>
@@ -1356,7 +1410,7 @@ function mapSearch(stop) {
           {!plan ? <div className="panel"><h2>No plan yet</h2><p>Go to Trip Setup and click Generate Plan.</p></div> : <>
             <div className="actions"><button onClick={exportPdf}>Download Weather PDF</button><button onClick={saveTrip}>Save Trip</button></div>
             <PlanSnapshot plan={plan} />
-            {plan.days.map((day,i)=><Day day={day} key={i}/>)}
+            {plan.days.map((day,i)=><Day day={day} liveRoutesByDate={liveRoutesByDate} key={i}/>)}
             <TripPackingChecklist plan={plan} />
           </>}
         </section>
@@ -1593,7 +1647,7 @@ function EmbeddedWeatherCard({day}) {
 }
 
 
-function Day({day}) {
+function Day({day, liveRoutesByDate = {}}) {
   const w = day.weather || {};
   return <article className="day panel">
     <div className="dayHeader">
@@ -1606,6 +1660,22 @@ function Day({day}) {
     </div>
 
     <EmbeddedWeatherCard day={day} />
+
+    {liveRoutesByDate?.[day.date]?.length > 0 && (
+      <div className="dayLiveRoute">
+        <h3>🧭 Your LIVE Route For This Day</h3>
+        {liveRoutesByDate[day.date].map((stop, i) => (
+          <div className={`dayRouteLine ${stop.done ? 'done' : ''}`} key={stop.id}>
+            <b>{i + 1}. {stop.time || 'Anytime'} — {stop.type}</b>
+            <span>{stop.title || 'Untitled stop'}</span>
+            {stop.type === 'Lightning Lane' && (
+              <em>{stop.lightningStart || 'Start time'} – {stop.lightningEnd || 'End time'}</em>
+            )}
+            {stop.notes && <p>{stop.notes}</p>}
+          </div>
+        ))}
+      </div>
+    )}
 
     <div className={`meltdown m${day.meltdownPrediction.risk}`}>
       <h3>Meltdown Risk: {day.meltdownPrediction.risk}</h3>
