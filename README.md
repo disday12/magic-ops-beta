@@ -16,3 +16,4 @@ docker compose up
 
 Open:
 http://localhost:5173
+Vercel rebuild trigger.
