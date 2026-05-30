@@ -707,12 +707,57 @@ function App() {
   const [aiTripPlan, setAiTripPlan] = useState(null);
   const [liveQuestion, setLiveQuestion] = useState('My kid is melting down and it is raining. What should we do?');
   const [liveAnswer, setLiveAnswer] = useState(null);
+  const [liveRoute, setLiveRoute] = useState([]);
     function update(key, value) { setForm(prev => ({ ...prev, [key]: value })); }
 
   function generateAITripPlan() {
     setAiTripPlan(buildAITripPlan(aiTripPrompt, form));
   }
 
+  function addRouteStop(type) {
+  const newStop = {
+    id: Date.now(),
+    type,
+    title: '',
+    time: '',
+    notes: '',
+    lightningStart: '',
+    lightningEnd: '',
+    done: false
+  };
+  setLiveRoute(prev => [...prev, newStop]);
+}
+
+function updateRouteStop(id, field, value) {
+  setLiveRoute(prev =>
+    prev.map(stop =>
+      stop.id === id ? { ...stop, [field]: value } : stop
+    )
+  );
+}
+
+function removeRouteStop(id) {
+  setLiveRoute(prev => prev.filter(stop => stop.id !== id));
+}
+
+function moveRouteStop(id, direction) {
+  setLiveRoute(prev => {
+    const index = prev.findIndex(stop => stop.id === id);
+    if (index < 0) return prev;
+    const nextIndex = index + direction;
+    if (nextIndex < 0 || nextIndex >= prev.length) return prev;
+
+    const copy = [...prev];
+    [copy[index], copy[nextIndex]] = [copy[nextIndex], copy[index]];
+    return copy;
+  });
+}
+
+function mapSearch(stop) {
+  const query = encodeURIComponent(`${stop.title} ${plan?.days?.[0]?.park || 'Walt Disney World'}`);
+  window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
+}
+  
   function askLiveOps(q) {
     const question = q || liveQuestion;
     setLiveQuestion(question);
@@ -1183,6 +1228,87 @@ function App() {
               )}
             </div>
 
+            <div className="panel liveRouteBuilder">
+  <h2>🧭 LIVE Day Route Builder</h2>
+  <p className="softText">
+    Build today’s real park route. Add rides, Lightning Lanes, meals, shows, breaks, and transportation.
+  </p>
+
+  <div className="routeButtons">
+    <button onClick={() => addRouteStop('Ride')}>+ Ride</button>
+    <button onClick={() => addRouteStop('Lightning Lane')}>+ Lightning Lane</button>
+    <button onClick={() => addRouteStop('Meal')}>+ Meal</button>
+    <button onClick={() => addRouteStop('Show')}>+ Show</button>
+    <button onClick={() => addRouteStop('Break')}>+ Break</button>
+    <button onClick={() => addRouteStop('Transportation')}>+ Transportation</button>
+  </div>
+
+  {liveRoute.length === 0 && (
+    <p className="softText">No stops yet. Add your first ride, meal, or Lightning Lane.</p>
+  )}
+
+  <div className="routeList">
+    {liveRoute.map((stop, index) => (
+      <div className={`routeCard ${stop.done ? 'routeDone' : ''}`} key={stop.id}>
+        <div className="routeCardHeader">
+          <span>{index + 1}. {stop.type}</span>
+          <label className="doneCheck">
+            <input
+              type="checkbox"
+              checked={stop.done}
+              onChange={e => updateRouteStop(stop.id, 'done', e.target.checked)}
+            />
+            Done
+          </label>
+        </div>
+
+        <div className="routeGrid">
+          <input
+            placeholder="Time, ex: 10:30 AM"
+            value={stop.time}
+            onChange={e => updateRouteStop(stop.id, 'time', e.target.value)}
+          />
+
+          <input
+            placeholder="Ride, show, meal, or place"
+            value={stop.title}
+            onChange={e => updateRouteStop(stop.id, 'title', e.target.value)}
+          />
+        </div>
+
+        {stop.type === 'Lightning Lane' && (
+          <div className="routeGrid">
+            <input
+              placeholder="LL start, ex: 10:20"
+              value={stop.lightningStart}
+              onChange={e => updateRouteStop(stop.id, 'lightningStart', e.target.value)}
+            />
+
+            <input
+              placeholder="LL end, ex: 11:20"
+              value={stop.lightningEnd}
+              onChange={e => updateRouteStop(stop.id, 'lightningEnd', e.target.value)}
+            />
+          </div>
+        )}
+
+        <textarea
+          placeholder="Notes, snack plan, stroller plan, must-do, etc."
+          value={stop.notes}
+          onChange={e => updateRouteStop(stop.id, 'notes', e.target.value)}
+        />
+
+        <div className="routeActions">
+          <button onClick={() => moveRouteStop(stop.id, -1)}>↑ Move Up</button>
+          <button onClick={() => moveRouteStop(stop.id, 1)}>↓ Move Down</button>
+          <button disabled={!stop.title} onClick={() => mapSearch(stop)}>Map</button>
+          <button onClick={() => removeRouteStop(stop.id)}>Remove</button>
+        </div>
+      </div>
+    ))}
+  </div>
+</div>
+            
             <div className="panel liveAskBox">
               <h2>✨ Ask Magic Ops</h2>
               <textarea value={liveQuestion} onChange={e=>setLiveQuestion(e.target.value)} />
