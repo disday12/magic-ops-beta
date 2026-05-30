@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './style.css';
 
-const API = 'http://localhost:5000';
+const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 const resorts = ['Port Orleans Riverside','Port Orleans French Quarter','Pop Century','Art of Animation','Caribbean Beach','Animal Kingdom Lodge','Contemporary','Polynesian','Grand Floridian','Wilderness Lodge','BoardWalk','Beach Club','Yacht Club','Other'];
 
 const hotelTiers = [
