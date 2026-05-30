@@ -1679,10 +1679,10 @@ function App() {
 
 
 
-function DayRouteTimeline({day, route = [], waitStatus}) {
+function DayRouteTimeline({day, route = []}) {
   if (!route || route.length === 0) return null;
   const stress = routeStressLevel(route);
-  const next = suggestedNextMoveForDay(day, route, waitStatus);
+  const next = suggestedNextMoveForDay(day, route, null);
 
   return <div className="dayLiveRoute upgradedTimeline">
     <div className="timelineHeader">
@@ -1919,7 +1919,7 @@ function Day({day, liveRoutesByDate = {}}) {
 
     <EmbeddedWeatherCard day={day} />
 
-    <DayRouteTimeline day={day} route={liveRoutesByDate?.[day.date] || []} waitStatus={waitStatus} />
+    <DayRouteTimeline day={day} route={liveRoutesByDate?.[day.date] || []} />
 
 
     <div className={`meltdown m${day.meltdownPrediction.risk}`}>
