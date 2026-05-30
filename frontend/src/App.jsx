@@ -1410,11 +1410,86 @@ function App() {
 
   return (
     <div className="page">
-      <header className="hero">
-        <p className="eyebrow">Magic Ops Family Trip Planner</p>
-        <h1>Build the trip, plan each day, then use LIVE mode in the park.</h1>
-        <p>Budget, setup, AI planning, day-by-day route planning, consolidated itinerary, saved plans, and fast LIVE park decisions.</p>
+      <header className="travelHero">
+        <div className="topNav">
+          <div className="brandMark">
+            <span>✨</span>
+            <div>
+              <b>MAGIC OPS</b>
+              <small>Family Park Planner</small>
+            </div>
+          </div>
+
+          <div className="navLinks">
+            <button onClick={()=>setTab('budget')}>Budget</button>
+            <button onClick={()=>setTab('setup')}>Start Planning</button>
+            <button onClick={()=>setTab('ai assistant')}>AI Assistant</button>
+            <button onClick={()=>setTab('live')}>LIVE Mode</button>
+          </div>
+        </div>
+
+        <div className="heroContent">
+          <p className="eyebrow">AI-powered family park planning</p>
+          <h1>Find the perfect Disney day before the meltdown happens.</h1>
+          <p>
+            Build your budget, plan your park days, route rides and meals, then use LIVE Mode for rain, crowds, fatigue, and kid emergencies.
+          </p>
+
+          <div className="heroSearch">
+            <input
+              value={aiTripPrompt}
+              onChange={e=>setAiTripPrompt(e.target.value)}
+              placeholder="Tell us your trip idea, budget, kids ages, resort, and must-dos..."
+            />
+            <button onClick={()=>{
+              generateAITripPlan();
+              setTab('ai assistant');
+            }}>
+              Start Planning
+            </button>
+          </div>
+
+          <div className="heroStats">
+            <div><b>AI</b><span>Trip Builder</span></div>
+            <div><b>LIVE</b><span>Park Mode</span></div>
+            <div><b>$</b><span>Budget Ops</span></div>
+            <div><b>☔</b><span>Rain Mode</span></div>
+          </div>
+        </div>
+
+        <div className="heroVideoCard">
+          <div className="playCircle">▶</div>
+          <span>LIVE PARK OPS</span>
+        </div>
       </header>
+
+      <section className="travelSteps">
+        <p className="eyebrow">3 steps to a better trip</p>
+        <h2>Plan before you go. Adjust while you’re there.</h2>
+        <p className="stepsIntro">
+          Start with your budget and family style, build the park days, then use LIVE Mode when the day changes.
+        </p>
+
+        <div className="stepCards">
+          <div className="stepCard">
+            <div className="stepIcon">💰</div>
+            <h3>1. Build the trip</h3>
+            <p>Use Budget, Setup, and AI Assistant to create the right trip for your family.</p>
+          </div>
+          <div className="stepCard">
+            <div className="stepIcon">🧭</div>
+            <h3>2. Route the day</h3>
+            <p>Add rides, meals, shows, Lightning Lanes, breaks, and map links to each day.</p>
+          </div>
+          <div className="stepCard">
+            <div className="stepIcon">🚨</div>
+            <h3>3. Go LIVE</h3>
+            <p>Rain Mode, Meltdown Mode, walking load, wait times, and fast decision tools.</p>
+          </div>
+        </div>
+
+        <button className="landingCTA" onClick={()=>setTab('budget')}>Let’s Plan Your Trip</button>
+      </section>
 
       <nav className="tabs">
         {['budget','setup','ai assistant','day planner','plan','saved','live park mode','fatigue','weather','waits'].map(t => <button className={tab===t?'active':''} onClick={()=>setTab(t)} key={t}>{t}</button>)}
