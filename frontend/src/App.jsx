@@ -844,6 +844,7 @@ function App() {
   const [liveAnswer, setLiveAnswer] = useState(null);
   const [liveRoutesByDate, setLiveRoutesByDate] = useState(() => safeLoadJson('magicOps.liveRoutesByDate', {}));
   const [selectedLiveDate, setSelectedLiveDate] = useState(() => safeLoadJson('magicOps.selectedLiveDate', ''));
+  const [routeOptimizationNotes, setRouteOptimizationNotes] = useState({});
     function update(key, value) { setForm(prev => ({ ...prev, [key]: value })); }
 
   function generateAITripPlan() {
@@ -1125,9 +1126,38 @@ function App() {
 
   function optimizeActiveRoute() {
     const date = getActiveRouteDate();
+    const currentRoute = liveRoutesByDate[date] || [];
+    const optimized = optimizeRouteOrder(currentRoute);
+
+    const before = currentRoute.map(x => x.id).join(',');
+    const after = optimized.map(x => x.id).join(',');
+    const changed = before !== after;
+
+    const lightningCount = optimized.filter(x => x.type === 'Lightning Lane').length;
+    const breakCount = optimized.filter(x => x.type === 'Break').length;
+    const mealCount = optimized.filter(x => x.type === 'Meal').length;
+    const rideCount = optimized.filter(x => x.type === 'Ride').length;
+
+    const notes = [];
+    if (changed) notes.push('Route order updated using the current simple rule engine.');
+    if (!changed) notes.push('Your route was already close to the recommended order, so no major movement was needed.');
+    if (lightningCount > 0) notes.push('Lightning Lane stops are protected near the top so return windows do not get missed.');
+    if (rideCount >= 3 && breakCount === 0) notes.push('You have several ride stops and no break. Add a Break if kids are young or fatigue is rising.');
+    if (mealCount === 0) notes.push('No meal is currently in this route. Add lunch/dinner if this is a long park block.');
+    if (breakCount > 0) notes.push('Breaks are kept later in the route as a recovery tool after the first attraction block.');
+
     setLiveRoutesByDate(prev => ({
       ...prev,
-      [date]: optimizeRouteOrder(prev[date] || [])
+      [date]: optimized
+    }));
+
+    setRouteOptimizationNotes(prev => ({
+      ...prev,
+      [date]: {
+        changed,
+        generatedAt: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+        notes
+      }
     }));
   }
 
@@ -1515,6 +1545,23 @@ function App() {
   <p className="softText">
     Build today’s real park route. Add rides, Lightning Lanes, meals, shows, breaks, and transportation.
   </p>
+
+
+  {routeOptimizationNotes[getActiveRouteDate()] && (
+    <div className={`optimizationResultBox ${routeOptimizationNotes[getActiveRouteDate()].changed ? 'changed' : 'unchanged'}`}>
+      <h3>⚡ Optimization Result</h3>
+      <p>
+        Last optimized at {routeOptimizationNotes[getActiveRouteDate()].generatedAt}.
+        {' '}
+        {routeOptimizationNotes[getActiveRouteDate()].changed ? 'The route order changed.' : 'No major route movement was needed.'}
+      </p>
+      <ul>
+        {routeOptimizationNotes[getActiveRouteDate()].notes.map((note, i) => (
+          <li key={i}>{note}</li>
+        ))}
+      </ul>
+    </div>
+  )}
 
   <div className="routeButtons">
     <button onClick={() => addRouteStop('Ride')}>+ Ride</button>
