@@ -1126,3 +1126,208 @@ pre{white-space:pre-wrap;background:#07111f;border:1px solid #273449;border-radi
   font-weight:900;
   text-decoration:none;
 }
+
+
+/* Dropdown Day Planner Add-on */
+.stopChoiceStack{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.stopChoiceStack select{
+  width:100%;
+}
+.smallLinkButton{
+  justify-self:start;
+  width:fit-content;
+  padding:8px 10px;
+  font-size:12px;
+  border-radius:999px;
+  background:rgba(59,130,246,.22);
+  border:1px solid rgba(147,197,253,.28);
+  color:#dbeafe;
+}
+.dayLiveRoute{
+  background:linear-gradient(135deg, rgba(34,197,94,.18), rgba(7,17,31,.88));
+  border:1px solid rgba(34,197,94,.35);
+  border-radius:22px;
+  padding:18px;
+  margin:16px 0;
+}
+.dayLiveRoute h3{
+  margin-top:0;
+  color:#bbf7d0;
+}
+.dayRouteLine{
+  background:rgba(7,17,31,.72);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:16px;
+  padding:12px;
+  margin-bottom:10px;
+}
+.dayRouteLine b{
+  display:block;
+  color:#fde68a;
+}
+.dayRouteLine span{
+  display:block;
+  color:#fff7ed;
+  margin:4px 0;
+}
+.dayRouteLine em{
+  display:block;
+  color:#bfdbfe;
+  font-style:normal;
+  font-weight:900;
+}
+.dayRouteLine.done{
+  opacity:.6;
+  border-color:rgba(34,197,94,.35);
+}
+.miniMapLink{
+  display:inline-block;
+  margin-top:8px;
+  border-radius:999px;
+  padding:6px 10px;
+  background:rgba(251,191,36,.18);
+  border:1px solid rgba(251,191,36,.26);
+  color:#fde68a;
+  font-weight:900;
+  text-decoration:none;
+}
+
+
+/* VNext polish: autosave, route optimization, timeline plan view */
+.routeCommandStrip{
+  display:grid;
+  grid-template-columns:220px 1fr;
+  gap:14px;
+  background:rgba(7,17,31,.78);
+  border:1px solid rgba(251,191,36,.22);
+  border-radius:20px;
+  padding:16px;
+  margin:14px 0;
+}
+.routeCommandStrip b{
+  display:block;
+  color:#fde68a;
+  margin-bottom:6px;
+}
+.routeCommandStrip p{
+  margin:0 0 4px;
+  color:#dbeafe;
+}
+.routeCommandStrip em{
+  color:#93c5fd;
+  font-style:normal;
+  font-weight:800;
+}
+.routeStress{
+  display:inline-block;
+  border-radius:999px;
+  padding:7px 11px;
+  font-weight:950;
+  font-size:13px;
+}
+.routeStress.Low{
+  background:#14532d;
+  color:#bbf7d0;
+}
+.routeStress.Medium{
+  background:#854d0e;
+  color:#fde68a;
+}
+.routeStress.High{
+  background:#7f1d1d;
+  color:#fecaca;
+}
+.optimizeRouteButton{
+  background:linear-gradient(135deg,#7c3aed,#2563eb)!important;
+  color:white!important;
+}
+.upgradedTimeline{
+  background:
+    radial-gradient(circle at top right, rgba(34,197,94,.20), transparent 14rem),
+    linear-gradient(135deg, rgba(20,83,45,.20), rgba(7,17,31,.90));
+}
+.timelineHeader{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:16px;
+  margin-bottom:16px;
+}
+.timelineHeader h3{
+  margin:0 0 6px;
+  color:#bbf7d0;
+}
+.routeTimeline{
+  display:grid;
+  gap:12px;
+}
+.timelineStop{
+  display:grid;
+  grid-template-columns:44px 1fr;
+  gap:12px;
+  align-items:stretch;
+}
+.timelineNumber{
+  width:44px;
+  height:44px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  background:#1d4ed8;
+  color:#eff6ff;
+  font-weight:950;
+  border:2px solid rgba(255,255,255,.18);
+}
+.timelineBody{
+  background:rgba(7,17,31,.76);
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:18px;
+  padding:14px;
+}
+.timelineTop{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:center;
+}
+.timelineTop b{
+  color:#fde68a;
+}
+.timelineTop button{
+  padding:7px 10px;
+  border-radius:999px;
+}
+.timelineBody h4{
+  margin:8px 0 4px;
+  color:#fff7ed;
+}
+.timelineBody em{
+  display:block;
+  color:#bfdbfe;
+  font-style:normal;
+  font-weight:900;
+}
+.timelineStop.done{
+  opacity:.58;
+}
+.timelineStop.done .timelineNumber{
+  background:#14532d;
+}
+@media(max-width:950px){
+  .routeCommandStrip,
+  .timelineHeader{
+    grid-template-columns:1fr;
+    display:block;
+  }
+  .timelineStop{
+    grid-template-columns:34px 1fr;
+  }
+  .timelineNumber{
+    width:34px;
+    height:34px;
+  }
+}
