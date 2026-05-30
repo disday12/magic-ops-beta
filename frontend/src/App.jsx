@@ -716,87 +716,91 @@ function App() {
   }
 
   function getActiveRouteDate() {
-  if (selectedLiveDate) return selectedLiveDate;
-  return plan?.days?.[0]?.date || '';
-}
+    if (selectedLiveDate) return selectedLiveDate;
+    const firstDate = plan?.days?.[0]?.date || '';
+    return firstDate;
+  }
 
-function getActiveRoute() {
-  const date = getActiveRouteDate();
-  return liveRoutesByDate[date] || [];
-}
+  function getActiveDay() {
+    const activeDate = getActiveRouteDate();
+    return plan?.days?.find(day => day.date === activeDate) || plan?.days?.[0] || null;
+  }
 
-function getActiveRouteDay() {
-  const date = getActiveRouteDate();
-  return plan?.days?.find(d => d.date === date) || plan?.days?.[0] || null;
-}
+  function getActiveRoute() {
+    const activeDate = getActiveRouteDate();
+    return liveRoutesByDate[activeDate] || [];
+  }
 
-function addRouteStop(type) {
-  const date = getActiveRouteDate();
-  if (!date) return alert('Generate or load a trip first so this route can attach to a trip day.');
+  function addRouteStop(type) {
+    const activeDate = getActiveRouteDate();
+    if (!activeDate) {
+      alert('Generate or load a trip first, then choose a trip day.');
+      return;
+    }
 
-  const newStop = {
-    id: Date.now(),
-    type,
-    title: '',
-    time: '',
-    notes: '',
-    lightningStart: '',
-    lightningEnd: '',
-    done: false
-  };
-
-  setLiveRoutesByDate(prev => ({
-    ...prev,
-    [date]: [...(prev[date] || []), newStop]
-  }));
-}
-
-function updateRouteStop(id, field, value) {
-  const date = getActiveRouteDate();
-
-  setLiveRoutesByDate(prev => ({
-    ...prev,
-    [date]: (prev[date] || []).map(stop =>
-      stop.id === id ? { ...stop, [field]: value } : stop
-    )
-  }));
-}
-
-function removeRouteStop(id) {
-  const date = getActiveRouteDate();
-
-  setLiveRoutesByDate(prev => ({
-    ...prev,
-    [date]: (prev[date] || []).filter(stop => stop.id !== id)
-  }));
-}
-
-function moveRouteStop(id, direction) {
-  const date = getActiveRouteDate();
-
-  setLiveRoutesByDate(prev => {
-    const route = [...(prev[date] || [])];
-    const index = route.findIndex(stop => stop.id === id);
-    if (index < 0) return prev;
-
-    const nextIndex = index + direction;
-    if (nextIndex < 0 || nextIndex >= route.length) return prev;
-
-    [route[index], route[nextIndex]] = [route[nextIndex], route[index]];
-
-    return {
-      ...prev,
-      [date]: route
+    const newStop = {
+      id: Date.now(),
+      type,
+      title: '',
+      time: '',
+      notes: '',
+      lightningStart: '',
+      lightningEnd: '',
+      done: false
     };
-  });
-}
 
-function mapSearch(stop) {
-  const activeDay = getActiveRouteDay();
-  const query = encodeURIComponent(`${stop.title} ${activeDay?.park || 'Walt Disney World'}`);
-  window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
-}
-  
+    setLiveRoutesByDate(prev => ({
+      ...prev,
+      [activeDate]: [...(prev[activeDate] || []), newStop]
+    }));
+  }
+
+  function updateRouteStop(id, field, value) {
+    const activeDate = getActiveRouteDate();
+
+    setLiveRoutesByDate(prev => ({
+      ...prev,
+      [activeDate]: (prev[activeDate] || []).map(stop =>
+        stop.id === id ? { ...stop, [field]: value } : stop
+      )
+    }));
+  }
+
+  function removeRouteStop(id) {
+    const activeDate = getActiveRouteDate();
+
+    setLiveRoutesByDate(prev => ({
+      ...prev,
+      [activeDate]: (prev[activeDate] || []).filter(stop => stop.id !== id)
+    }));
+  }
+
+  function moveRouteStop(id, direction) {
+    const activeDate = getActiveRouteDate();
+
+    setLiveRoutesByDate(prev => {
+      const route = [...(prev[activeDate] || [])];
+      const index = route.findIndex(stop => stop.id === id);
+      if (index < 0) return prev;
+
+      const nextIndex = index + direction;
+      if (nextIndex < 0 || nextIndex >= route.length) return prev;
+
+      [route[index], route[nextIndex]] = [route[nextIndex], route[index]];
+
+      return {
+        ...prev,
+        [activeDate]: route
+      };
+    });
+  }
+
+  function mapSearch(stop) {
+    const activeDay = getActiveDay();
+    const query = encodeURIComponent(`${stop.title} ${activeDay?.park || 'Walt Disney World'}`);
+    window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
+  }
+
   function askLiveOps(q) {
     const question = q || liveQuestion;
     setLiveQuestion(question);
@@ -953,19 +957,14 @@ function mapSearch(stop) {
   return (
     <div className="page">
       <header className="hero">
-        <p className="eyebrow">Disney Ops Planner V12 Magic Strategy</p>
-        <h1>Polished Disney Family Dashboard</h1>
-        <p>A cleaner dashboard with weather-aware itinerary cards, live wait-time strategy, fatigue reducer, budget, PDF export, and saved trips.</p>
+        <p className="eyebrow">Magic Ops Family Trip Planner</p>
+        <h1>Build the trip, plan each day, then use LIVE mode in the park.</h1>
+        <p>Budget, setup, AI planning, day-by-day route planning, consolidated itinerary, saved plans, and fast LIVE park decisions.</p>
       </header>
 
       <nav className="tabs">
-        {['setup','budget','ai assistant','saved','plan','fatigue','weather','waits','rewrite'].map(t => <button className={tab===t?'active':''} onClick={()=>setTab(t)} key={t}>{t}</button>)}
+        {['budget','setup','ai assistant','day planner','plan','saved','live park mode','fatigue','weather','waits'].map(t => <button className={tab===t?'active':''} onClick={()=>setTab(t)} key={t}>{t}</button>)}
       </nav>
-
-      <button className="bigLiveButton" onClick={()=>setTab('live')}>
-        🚨 LIVE PARK MODE
-        <span>Day-of-trip help</span>
-      </button>
 
       {error && <div className="error">Error: {error}</div>}
 
@@ -1244,13 +1243,13 @@ function mapSearch(stop) {
         </section>
       )}
 
-      {tab === 'live' && (
+      {tab === 'live park mode' && (
         <section className="liveMode">
           <div className="liveHero">
             <div>
               <p className="eyebrow">Day-Of-Trip Mode</p>
               <h1>🚨 LIVE PARK MODE</h1>
-              <p>Use this in the park when you need fast decisions: leave, eat, rain, rides, transportation, or meltdowns.</p>
+              <p>Fast decisions only: should we leave, where should we eat, what if it rains, what ride is low-stress, or what to do during a meltdown.</p>
             </div>
           </div>
 
@@ -1267,9 +1266,60 @@ function mapSearch(stop) {
               )}
             </div>
 
+            <div className="panel liveAskBox">
+              <h2>✨ Ask Magic Ops</h2>
+              <textarea value={liveQuestion} onChange={e=>setLiveQuestion(e.target.value)} />
+              <button className="primary" onClick={()=>askLiveOps()}>Ask LIVE Assistant</button>
+
+              {liveAnswer && <div className="liveAnswer">
+                <h2>{liveAnswer.title}</h2>
+                <h3>{liveAnswer.action}</h3>
+                <ul>{liveAnswer.steps.map((s,i)=><li key={i}>{s}</li>)}</ul>
+
+                <div className="escapeFinder">
+                  <h2>🎭 Best Escape Options Right Now</h2>
+                  <p className="softText">{liveAnswer.escape?.parkName} · {liveAnswer.escape?.message}</p>
+
+                  {liveAnswer.recommendedOptions?.length > 0 ? <div className="escapeGrid">
+                    {liveAnswer.recommendedOptions.map((a,i)=><div className="escapeCard" key={i}>
+                      <b>{a.name}</b>
+                      <span>{a.waitTime} min wait</span>
+                      <em>{attractionLooksLikeShow(a.name) ? 'Show / calm option' : attractionLooksIndoor(a.name) ? 'Indoor / lower-stress option' : 'Low queue option'}</em>
+                    </div>)}
+                  </div> : <p>No live low-queue options available. Use nearest AC, snack, or resort reset.</p>}
+
+                  {liveAnswer.escape?.shows?.length > 0 && <div>
+                    <h3>Calm Shows / AC Options</h3>
+                    <div className="miniEscapeList">
+                      {liveAnswer.escape.shows.map((a,i)=><span key={i}>{a.name} · {a.waitTime}m</span>)}
+                    </div>
+                  </div>}
+
+                  {liveAnswer.escape?.rides?.length > 0 && <div>
+                    <h3>Lowest Wait Rides</h3>
+                    <div className="miniEscapeList">
+                      {liveAnswer.escape.rides.slice(0,6).map((a,i)=><span key={i}>{a.name} · {a.waitTime}m</span>)}
+                    </div>
+                  </div>}
+                </div>
+              </div>}
+            </div>
+          </div>}
+        </section>
+      )}
+
+
+      {tab === 'day planner' && (
+        <section className="panel">
+          <h2>🧭 Day Planner</h2>
+          <p className="softText">Choose one of your generated trip days and build the real park-day route: rides, Lightning Lanes, meals, shows, breaks, transportation, and map links.</p>
+          {!plan ? <div className="emptyMagic">
+            <div className="bigIcon">🗓️</div>
+            <h3>No trip days yet</h3>
+            <p>Go to Setup and generate a trip first. Then your park days will appear here.</p>
+          </div> : <>
             <div className="panel liveRouteBuilder">
   <h2>🧭 LIVE Day Route Builder</h2>
-
   <div className="liveDateSelector">
     <label>Select Trip Day</label>
     <select
@@ -1363,55 +1413,27 @@ function mapSearch(stop) {
   </div>
 </div>
             
-            <div className="panel liveAskBox">
-              <h2>✨ Ask Magic Ops</h2>
-              <textarea value={liveQuestion} onChange={e=>setLiveQuestion(e.target.value)} />
-              <button className="primary" onClick={()=>askLiveOps()}>Ask LIVE Assistant</button>
 
-              {liveAnswer && <div className="liveAnswer">
-                <h2>{liveAnswer.title}</h2>
-                <h3>{liveAnswer.action}</h3>
-                <ul>{liveAnswer.steps.map((s,i)=><li key={i}>{s}</li>)}</ul>
-
-                <div className="escapeFinder">
-                  <h2>🎭 Best Escape Options Right Now</h2>
-                  <p className="softText">{liveAnswer.escape?.parkName} · {liveAnswer.escape?.message}</p>
-
-                  {liveAnswer.recommendedOptions?.length > 0 ? <div className="escapeGrid">
-                    {liveAnswer.recommendedOptions.map((a,i)=><div className="escapeCard" key={i}>
-                      <b>{a.name}</b>
-                      <span>{a.waitTime} min wait</span>
-                      <em>{attractionLooksLikeShow(a.name) ? 'Show / calm option' : attractionLooksIndoor(a.name) ? 'Indoor / lower-stress option' : 'Low queue option'}</em>
-                    </div>)}
-                  </div> : <p>No live low-queue options available. Use nearest AC, snack, or resort reset.</p>}
-
-                  {liveAnswer.escape?.shows?.length > 0 && <div>
-                    <h3>Calm Shows / AC Options</h3>
-                    <div className="miniEscapeList">
-                      {liveAnswer.escape.shows.map((a,i)=><span key={i}>{a.name} · {a.waitTime}m</span>)}
-                    </div>
-                  </div>}
-
-                  {liveAnswer.escape?.rides?.length > 0 && <div>
-                    <h3>Lowest Wait Rides</h3>
-                    <div className="miniEscapeList">
-                      {liveAnswer.escape.rides.slice(0,6).map((a,i)=><span key={i}>{a.name} · {a.waitTime}m</span>)}
-                    </div>
-                  </div>}
-                </div>
-              </div>}
-            </div>
-          </div>}
+          </>}
         </section>
       )}
 
       {tab === 'plan' && (
         <section>
           {!plan ? <div className="panel"><h2>No plan yet</h2><p>Go to Trip Setup and click Generate Plan.</p></div> : <>
-            <div className="actions"><button onClick={exportPdf}>Download Weather PDF</button><button onClick={saveTrip}>Save Trip</button></div>
+            <div className="panel consolidatedPlanIntro">
+              <h2>📋 Full Consolidated Trip Plan</h2>
+              <p className="softText">This pulls together your generated itinerary, weather, fatigue planning, meals, snacks, and any Day Planner route stops you added for each park day.</p>
+            </div>
+            <div className="actions"><button onClick={exportPdf}>Download Weather PDF</button></div>
             <PlanSnapshot plan={plan} />
             {plan.days.map((day,i)=><Day day={day} liveRoutesByDate={liveRoutesByDate} key={i}/>)}
             <TripPackingChecklist plan={plan} />
+            <div className="panel savePlanFooter">
+              <h2>Save This Full Plan</h2>
+              <p className="softText">Save this consolidated itinerary so you can load it later or keep building from it.</p>
+              <button className="primary" onClick={saveTrip}>Send To Saved Plans</button>
+            </div>
           </>}
         </section>
       )}
@@ -1663,19 +1685,20 @@ function Day({day, liveRoutesByDate = {}}) {
 
     {liveRoutesByDate?.[day.date]?.length > 0 && (
       <div className="dayLiveRoute">
-        <h3>🧭 Your LIVE Route For This Day</h3>
+        <h3>🧭 Your Day Planner Route</h3>
         {liveRoutesByDate[day.date].map((stop, i) => (
           <div className={`dayRouteLine ${stop.done ? 'done' : ''}`} key={stop.id}>
             <b>{i + 1}. {stop.time || 'Anytime'} — {stop.type}</b>
             <span>{stop.title || 'Untitled stop'}</span>
             {stop.type === 'Lightning Lane' && (
-              <em>{stop.lightningStart || 'Start time'} – {stop.lightningEnd || 'End time'}</em>
+              <em>{stop.lightningStart || 'LL start'} – {stop.lightningEnd || 'LL end'}</em>
             )}
             {stop.notes && <p>{stop.notes}</p>}
           </div>
         ))}
       </div>
     )}
+
 
     <div className={`meltdown m${day.meltdownPrediction.risk}`}>
       <h3>Meltdown Risk: {day.meltdownPrediction.risk}</h3>
