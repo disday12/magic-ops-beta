@@ -939,6 +939,91 @@ function coordinateForStop(stop, park) {
 }
 
 
+
+function getRouteForDay(day, liveRoutesByDate) {
+  if (!day || !liveRoutesByDate) return [];
+  return liveRoutesByDate[day.date] || [];
+}
+
+function computeWalkingLoad(route = [], day = {}) {
+  const routeCount = route.length;
+  const rides = route.filter(s => s.type === 'Ride' || s.type === 'Lightning Lane').length;
+  const meals = route.filter(s => s.type === 'Meal').length;
+  const breaks = route.filter(s => s.type === 'Break').length;
+  const transportation = route.filter(s => s.type === 'Transportation').length;
+  const heat = Number(day?.weather?.high || 0);
+  const rain = Number(day?.weather?.rainProbability || 0);
+
+  let score = routeCount * 8 + rides * 4 + transportation * 5 - breaks * 12 - meals * 4;
+  if (heat >= 88) score += 12;
+  if (rain >= 45) score += 6;
+  score = Math.max(0, Math.min(100, score));
+
+  const miles = Math.max(0.7, (routeCount * 0.28 + rides * 0.12 + transportation * 0.18)).toFixed(1);
+  const label = score >= 75 ? 'High' : score >= 45 ? 'Medium' : 'Low';
+  const advice = score >= 75
+    ? 'High walking/fatigue load. Add a real break, reduce zig-zagging, or choose a closer low-wait option.'
+    : score >= 45
+      ? 'Manageable, but protect water/snack breaks before the afternoon crash window.'
+      : 'Low load. This route should be reasonable if the kids stay fed and hydrated.';
+
+  return { score, miles, label, advice, routeCount, rides, meals, breaks };
+}
+
+function getRainModePlan(day, route = [], waitStatus) {
+  const park = day?.park || 'current park';
+  const escape = getLiveEscapeOptions(waitStatus, park);
+  const indoor = [...(escape.shows || []), ...(escape.indoor || [])].slice(0, 6);
+  const routeSuggestions = route.filter(s => ['Show','Meal','Break'].includes(s.type)).slice(0, 4);
+
+  const steps = [
+    'Put ponchos and stroller cover on before the rain gets heavy.',
+    'Stop outdoor queue stacking. Pick indoor shows, indoor rides, shops, or a sit-down meal.',
+    'Use the next 60–90 minutes to reset instead of forcing the original plan.',
+    'Keep socks/extra kid clothes accessible if you are staying in the park.'
+  ];
+
+  if (routeSuggestions.length) {
+    steps.unshift('Your current route already has some rain-friendly stops. Move those earlier.');
+  }
+
+  return {
+    title: `Rain Mode for ${park}`,
+    options: indoor,
+    routeSuggestions,
+    steps
+  };
+}
+
+function getMeltdownModePlan(day, route = [], waitStatus) {
+  const park = day?.park || 'current park';
+  const escape = getLiveEscapeOptions(waitStatus, park);
+  const calmOptions = [...(escape.shows || []), ...(escape.indoor || [])].slice(0, 5);
+  const unfinished = route.filter(s => !s.done);
+  const nextBreak = unfinished.find(s => s.type === 'Break' || s.type === 'Meal' || s.type === 'Show');
+
+  const steps = [
+    'Stop the itinerary immediately. Do not enter another long queue.',
+    'Snack + water + bathroom + shade/AC before making the next decision.',
+    'Use stroller time or a quiet seated show if the child can recover.',
+    'If recovery does not happen in 30–45 minutes, leave for resort reset.'
+  ];
+
+  if (nextBreak) steps.unshift(`Move this planned recovery stop up now: ${nextBreak.title || nextBreak.type}.`);
+
+  return {
+    title: `Meltdown Mode for ${park}`,
+    calmOptions,
+    nextBreak,
+    steps
+  };
+}
+
+function getActiveDayFromPlan(plan, selectedLiveDate) {
+  if (!plan?.days?.length) return null;
+  return plan.days.find(d => d.date === selectedLiveDate) || plan.days[0];
+}
+
 function App() {
   const [tab, setTab] = useState('setup');
   const [form, setForm] = useState(() => safeLoadJson('magicOps.form', {
@@ -986,6 +1071,8 @@ function App() {
   const [aiTripPlan, setAiTripPlan] = useState(null);
   const [liveQuestion, setLiveQuestion] = useState('My kid is melting down and it is raining. What should we do?');
   const [liveAnswer, setLiveAnswer] = useState(null);
+  const [rainModeResult, setRainModeResult] = useState(null);
+  const [meltdownModeResult, setMeltdownModeResult] = useState(null);
   const [liveRoutesByDate, setLiveRoutesByDate] = useState(() => safeLoadJson('magicOps.liveRoutesByDate', {}));
   const [selectedLiveDate, setSelectedLiveDate] = useState(() => safeLoadJson('magicOps.selectedLiveDate', ''));
   const [routeOptimizationNotes, setRouteOptimizationNotes] = useState({});
@@ -1099,6 +1186,21 @@ function App() {
     const activeDay = getActiveDay();
     const query = encodeURIComponent(`${stop.title} ${activeDay?.park || 'Walt Disney World'}`);
     window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
+  }
+
+
+  function runRainMode() {
+    const activeDay = getActiveDayFromPlan(plan, getActiveRouteDate());
+    const activeRoute = getActiveRoute();
+    setRainModeResult(getRainModePlan(activeDay, activeRoute, waitStatus));
+    setMeltdownModeResult(null);
+  }
+
+  function runMeltdownMode() {
+    const activeDay = getActiveDayFromPlan(plan, getActiveRouteDate());
+    const activeRoute = getActiveRoute();
+    setMeltdownModeResult(getMeltdownModePlan(activeDay, activeRoute, waitStatus));
+    setRainModeResult(null);
   }
 
   function askLiveOps(q) {
@@ -1612,6 +1714,81 @@ function App() {
 
           {plan && <div>
             <LiveStatusPanel plan={plan} waitStatus={waitStatus} />
+
+            {(() => {
+              const activeDay = getActiveDayFromPlan(plan, getActiveRouteDate());
+              const activeRoute = getActiveRoute();
+              const walking = computeWalkingLoad(activeRoute, activeDay);
+              return (
+                <div className="premiumOpsPanel">
+                  <div className="premiumOpsHero">
+                    <div>
+                      <p className="eyebrow">Premium Park Ops</p>
+                      <h2>{activeDay?.park || 'Today'} Command Center</h2>
+                      <p>Rain decisions, meltdown recovery, and walking load in one live panel.</p>
+                    </div>
+                    <div className={`walkingOrb ${walking.label}`}>
+                      <b>{walking.score}</b>
+                      <span>{walking.label} Load</span>
+                    </div>
+                  </div>
+
+                  <div className="premiumOpsGrid">
+                    <button className="rainModeButton" onClick={runRainMode}>
+                      ☔ Rain Mode
+                      <span>Rebuild around indoor escapes</span>
+                    </button>
+                    <button className="meltdownModeButton" onClick={runMeltdownMode}>
+                      😵 Meltdown Mode
+                      <span>Stabilize the kid first</span>
+                    </button>
+                    <div className="walkingLoadCard">
+                      <h3>🚶 Walking / Fatigue Load</h3>
+                      <div className="walkingStats">
+                        <div><b>{walking.miles}</b><span>est. miles</span></div>
+                        <div><b>{walking.routeCount}</b><span>stops</span></div>
+                        <div><b>{walking.breaks}</b><span>breaks</span></div>
+                      </div>
+                      <p>{walking.advice}</p>
+                    </div>
+                  </div>
+
+                  {rainModeResult && (
+                    <div className="modeResult rainResult">
+                      <h2>☔ {rainModeResult.title}</h2>
+                      <ul>{rainModeResult.steps.map((s,i)=><li key={i}>{s}</li>)}</ul>
+                      {rainModeResult.options?.length > 0 && <div>
+                        <h3>Best indoor / covered options right now</h3>
+                        <div className="modeOptionGrid">
+                          {rainModeResult.options.map((o,i)=><div className="modeOption" key={i}>
+                            <b>{o.name}</b>
+                            <span>{o.waitTime} min wait</span>
+                          </div>)}
+                        </div>
+                      </div>}
+                    </div>
+                  )}
+
+                  {meltdownModeResult && (
+                    <div className="modeResult meltdownResult">
+                      <h2>😵 {meltdownModeResult.title}</h2>
+                      {meltdownModeResult.nextBreak && <p className="priorityMove">Move up now: {meltdownModeResult.nextBreak.title || meltdownModeResult.nextBreak.type}</p>}
+                      <ul>{meltdownModeResult.steps.map((s,i)=><li key={i}>{s}</li>)}</ul>
+                      {meltdownModeResult.calmOptions?.length > 0 && <div>
+                        <h3>Lowest-stress recovery options</h3>
+                        <div className="modeOptionGrid">
+                          {meltdownModeResult.calmOptions.map((o,i)=><div className="modeOption" key={i}>
+                            <b>{o.name}</b>
+                            <span>{o.waitTime} min wait</span>
+                          </div>)}
+                        </div>
+                      </div>}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
             <div className="quickLiveGrid">
               {['Should we leave the park?','It is raining. What do we do?','Where should we eat right now?','My kid is melting down. Find a show or low-wait escape.','What ride should we do next?','Transportation help'].map((q,i)=>
                 <button key={i} onClick={()=>askLiveOps(q)}>{q}</button>
@@ -1950,7 +2127,7 @@ function DayRouteTimeline({day, route = []}) {
         <h3>🧭 Park Route For This Day</h3>
         <p className="softText">{next.title} — {next.detail}</p>
       </div>
-      <span className={`routeStress ${stress.label}`}>{stress.label} stress</span>
+      <div className="timelineBadges"><span className={`routeStress ${stress.label}`}>{stress.label} stress</span><span className={`walkingLoadMini ${computeWalkingLoad(route, day).label}`}>🚶 {computeWalkingLoad(route, day).miles} mi</span></div>
     </div>
 
     <ParkRouteMap day={day} route={route} />
