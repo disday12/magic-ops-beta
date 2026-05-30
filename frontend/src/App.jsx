@@ -160,6 +160,65 @@ function calculateBudgetScenarios(form, target) {
 
 
 const parks = ['','Magic Kingdom','EPCOT','Animal Kingdom','Hollywood Studios','Resort / Rest Day'];
+
+const parkStopOptions = {
+  'Magic Kingdom': {
+    Ride: ['Peter Pan’s Flight','Jungle Cruise','Pirates of the Caribbean','Haunted Mansion','it’s a small world','Buzz Lightyear’s Space Ranger Spin','Tomorrowland Transit Authority PeopleMover','The Many Adventures of Winnie the Pooh','Under the Sea - Journey of The Little Mermaid','Dumbo the Flying Elephant','Big Thunder Mountain Railroad','Seven Dwarfs Mine Train','TRON Lightcycle / Run'],
+    'Lightning Lane': ['Peter Pan’s Flight','Jungle Cruise','Pirates of the Caribbean','Haunted Mansion','Big Thunder Mountain Railroad','Buzz Lightyear’s Space Ranger Spin','The Many Adventures of Winnie the Pooh','Under the Sea - Journey of The Little Mermaid','Seven Dwarfs Mine Train','TRON Lightcycle / Run'],
+    Meal: ['Crystal Palace','Cinderella’s Royal Table','Skipper Canteen','Liberty Tree Tavern','Columbia Harbour House','Pecos Bill Tall Tale Inn and Cafe','Casey’s Corner','Cosmic Ray’s Starlight Cafe','Pinocchio Village Haus'],
+    Show: ['Mickey’s PhilharMagic','Carousel of Progress','Country Bear Musical Jamboree','Enchanted Tiki Room','Hall of Presidents','Monsters Inc. Laugh Floor','Festival of Fantasy Parade','Happily Ever After Fireworks'],
+    Break: ['Resort pool break','Stroller nap loop','Main Street snack break','Tomorrowland AC break','Liberty Square quiet reset'],
+    Transportation: ['Bus to resort','Monorail to resort area','Ferry / boat transfer','Minnie Van / rideshare pickup','Walk to Contemporary']
+  },
+  'EPCOT': {
+    Ride: ['Frozen Ever After','Remy’s Ratatouille Adventure','Spaceship Earth','Living with the Land','The Seas with Nemo & Friends','Journey into Imagination with Figment','Soarin’ Around the World','Gran Fiesta Tour','Guardians of the Galaxy: Cosmic Rewind','Test Track'],
+    'Lightning Lane': ['Frozen Ever After','Remy’s Ratatouille Adventure','Soarin’ Around the World','Spaceship Earth','The Seas with Nemo & Friends','Journey into Imagination with Figment','Living with the Land','Guardians of the Galaxy: Cosmic Rewind','Test Track'],
+    Meal: ['Akershus Royal Banquet Hall','Garden Grill','Space 220','Via Napoli','Biergarten','Regal Eagle Smokehouse','Connections Eatery','Sunshine Seasons','Les Halles Boulangerie-Patisserie'],
+    Show: ['Turtle Talk with Crush','The American Adventure','Beauty and the Beast Sing-Along','Awesome Planet','Disney and Pixar Short Film Festival','Luminous Fireworks'],
+    Break: ['The Seas AC break','Land Pavilion rest block','World Showcase stroller walk','Resort/Skyliner break','Quiet bench reset'],
+    Transportation: ['Skyliner to resort','Bus to resort','Monorail transfer','Walk to BoardWalk area','Rideshare pickup']
+  },
+  'Animal Kingdom': {
+    Ride: ['Kilimanjaro Safaris','Na’vi River Journey','Expedition Everest','DINOSAUR','Kali River Rapids','TriceraTop Spin','Avatar Flight of Passage'],
+    'Lightning Lane': ['Kilimanjaro Safaris','Na’vi River Journey','Expedition Everest','DINOSAUR','Kali River Rapids','Avatar Flight of Passage'],
+    Meal: ['Tusker House','Yak & Yeti','Satu’li Canteen','Flame Tree Barbecue','Harambe Market','Pizzafari','Restaurantosaurus'],
+    Show: ['Festival of the Lion King','Finding Nemo: The Big Blue... and Beyond!','Feathered Friends in Flight','It’s Tough to be a Bug','Tree of Life Awakenings'],
+    Break: ['Discovery Island shade break','Boneyard play break','Nomad Lounge area reset','Resort pool break','Stroller nap walk'],
+    Transportation: ['Bus to resort','Minnie Van / rideshare pickup','Walk to bus loop','Resort reset']
+  },
+  'Hollywood Studios': {
+    Ride: ['Mickey & Minnie’s Runaway Railway','Toy Story Mania','Slinky Dog Dash','Alien Swirling Saucers','Millennium Falcon: Smugglers Run','Star Wars: Rise of the Resistance','Tower of Terror','Rock ’n’ Roller Coaster'],
+    'Lightning Lane': ['Slinky Dog Dash','Toy Story Mania','Mickey & Minnie’s Runaway Railway','Millennium Falcon: Smugglers Run','Tower of Terror','Rock ’n’ Roller Coaster','Star Wars: Rise of the Resistance'],
+    Meal: ['Hollywood & Vine','Sci-Fi Dine-In Theater','50’s Prime Time Cafe','Roundup Rodeo BBQ','Docking Bay 7','Ronto Roasters','ABC Commissary','Backlot Express'],
+    Show: ['For the First Time in Forever: Frozen Sing-Along','Beauty and the Beast Live on Stage','Muppet*Vision 3D','Indiana Jones Epic Stunt Spectacular','Fantasmic!','Disney Junior Play and Dance!'],
+    Break: ['Frozen Sing-Along AC break','Muppet*Vision reset','Animation Courtyard quiet break','Resort/Skyliner break','Stroller snack reset'],
+    Transportation: ['Skyliner to resort','Bus to resort','Boat to EPCOT resort area','Walk to BoardWalk area','Rideshare pickup']
+  },
+  'Resort / Rest Day': {
+    Ride: [],
+    'Lightning Lane': [],
+    Meal: ['Resort breakfast','Resort quick service','Disney Springs dinner','Character meal reservation','Pool bar / lounge snack'],
+    Show: ['Resort movie night','Campfire activity','Disney Springs entertainment'],
+    Break: ['Pool block','Nap block','Laundry/reset block','Quiet room time','Early bedtime'],
+    Transportation: ['Bus to Disney Springs','Boat to Disney Springs','Rideshare','Resort walking loop']
+  }
+};
+
+function normalizeParkName(park) {
+  const p = String(park || '');
+  if (p.includes('Magic Kingdom')) return 'Magic Kingdom';
+  if (p.includes('EPCOT')) return 'EPCOT';
+  if (p.includes('Animal Kingdom')) return 'Animal Kingdom';
+  if (p.includes('Hollywood Studios')) return 'Hollywood Studios';
+  if (p.includes('Resort')) return 'Resort / Rest Day';
+  return 'Magic Kingdom';
+}
+
+function getStopOptionsForPark(park, type) {
+  const key = normalizeParkName(park);
+  return parkStopOptions[key]?.[type] || [];
+}
+
 function splitList(value) { return value.split(',').map(x => x.trim()).filter(Boolean); }
 
 
@@ -731,6 +790,25 @@ function App() {
     return liveRoutesByDate[activeDate] || [];
   }
 
+
+  function getActiveParkName() {
+    return getActiveDay()?.park || 'Magic Kingdom';
+  }
+
+  function getOptionsForStopType(type) {
+    return getStopOptionsForPark(getActiveParkName(), type);
+  }
+
+  function chooseSuggestedStop(id, value) {
+    if (value === '__custom__') {
+      updateRouteStop(id, 'title', '');
+      updateRouteStop(id, 'customMode', true);
+      return;
+    }
+    updateRouteStop(id, 'title', value);
+    updateRouteStop(id, 'customMode', false);
+  }
+
   function addRouteStop(type) {
     const activeDate = getActiveRouteDate();
     if (!activeDate) {
@@ -746,7 +824,8 @@ function App() {
       notes: '',
       lightningStart: '',
       lightningEnd: '',
-      done: false
+      done: false,
+      customMode: false
     };
 
     setLiveRoutesByDate(prev => ({
@@ -1373,11 +1452,31 @@ function App() {
             onChange={e => updateRouteStop(stop.id, 'time', e.target.value)}
           />
 
-          <input
-            placeholder="Ride, show, meal, or place"
-            value={stop.title}
-            onChange={e => updateRouteStop(stop.id, 'title', e.target.value)}
-          />
+          <div className="stopChoiceStack">
+            {getOptionsForStopType(stop.type).length > 0 && !stop.customMode ? (
+              <select
+                value={stop.title}
+                onChange={e => chooseSuggestedStop(stop.id, e.target.value)}
+              >
+                <option value="">Choose {stop.type}</option>
+                {getOptionsForStopType(stop.type).map(option => (
+                  <option value={option} key={option}>{option}</option>
+                ))}
+                <option value="__custom__">Custom / not listed</option>
+              </select>
+            ) : (
+              <input
+                placeholder="Ride, show, meal, or place"
+                value={stop.title}
+                onChange={e => updateRouteStop(stop.id, 'title', e.target.value)}
+              />
+            )}
+            {stop.customMode && getOptionsForStopType(stop.type).length > 0 && (
+              <button className="smallLinkButton" onClick={() => updateRouteStop(stop.id, 'customMode', false)}>
+                Back to dropdown
+              </button>
+            )}
+          </div>
         </div>
 
         {stop.type === 'Lightning Lane' && (
@@ -1694,6 +1793,7 @@ function Day({day, liveRoutesByDate = {}}) {
               <em>{stop.lightningStart || 'LL start'} – {stop.lightningEnd || 'LL end'}</em>
             )}
             {stop.notes && <p>{stop.notes}</p>}
+            <a className="miniMapLink" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${stop.title} ${day.park || 'Walt Disney World'}`)}`} target="_blank" rel="noreferrer">Map</a>
           </div>
         ))}
       </div>
