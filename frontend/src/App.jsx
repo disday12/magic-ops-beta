@@ -719,9 +719,85 @@ function answerLiveOps(question, plan, waitStatus) {
   return { title, action, steps, escape, recommendedOptions, priority };
 }
 
+
+function safeLoadJson(key, fallback) {
+  try {
+    const raw = window.localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function safeSaveJson(key, value) {
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // localStorage may be unavailable in private browsing or locked-down browsers
+  }
+}
+
+function routeStressLevel(route) {
+  const count = route.length;
+  const lightning = route.filter(x => x.type === 'Lightning Lane').length;
+  const breaks = route.filter(x => x.type === 'Break').length;
+  const meals = route.filter(x => x.type === 'Meal').length;
+  let score = count * 8 + lightning * 5 - breaks * 10 - meals * 4;
+  score = Math.max(0, Math.min(100, score));
+  const label = score >= 75 ? 'High' : score >= 45 ? 'Medium' : 'Low';
+  return { score, label };
+}
+
+function suggestedNextMoveForDay(day, route, waitStatus) {
+  const unfinished = route.filter(x => !x.done);
+  if (unfinished.length) {
+    const next = unfinished[0];
+    return {
+      title: `Next planned stop: ${next.title || next.type}`,
+      detail: next.type === 'Lightning Lane'
+        ? `Protect this Lightning Lane window${next.lightningStart || next.lightningEnd ? `: ${next.lightningStart || '?'} – ${next.lightningEnd || '?'}` : ''}.`
+        : `Follow the route unless weather, fatigue, or wait times say otherwise.`,
+      source: 'Your route'
+    };
+  }
+
+  const parkName = day?.park || '';
+  const escape = getLiveEscapeOptions(waitStatus, parkName);
+  const best = [...(escape.shows || []), ...(escape.indoor || []), ...(escape.rides || [])][0];
+  if (best) {
+    return {
+      title: `Suggested next move: ${best.name}`,
+      detail: `${best.waitTime} min wait · lowest-friction option from live data.`,
+      source: 'Live waits'
+    };
+  }
+
+  return {
+    title: 'Suggested next move: take a reset',
+    detail: 'Use snack, water, bathroom, and shade/AC before adding another major stop.',
+    source: 'Default safety plan'
+  };
+}
+
+function optimizeRouteOrder(route) {
+  const weight = {
+    'Lightning Lane': 1,
+    'Ride': 2,
+    'Show': 3,
+    'Meal': 4,
+    'Break': 5,
+    'Transportation': 6
+  };
+
+  return [...route].sort((a, b) => {
+    if (a.done !== b.done) return a.done ? 1 : -1;
+    return (weight[a.type] || 9) - (weight[b.type] || 9);
+  });
+}
+
 function App() {
   const [tab, setTab] = useState('setup');
-  const [form, setForm] = useState({
+  const [form, setForm] = useState(() => safeLoadJson('magicOps.form', {
     tripName: 'October Disney Weather Test Trip',
     resort: 'Port Orleans Riverside',
     startDate: '2026-10-22',
@@ -750,24 +826,24 @@ function App() {
     flightBudget: 0,
     strollerBudget: 0,
     miscBudget: 0
-  });
-  const [plan, setPlan] = useState(null);
+  }));
+  const [plan, setPlan] = useState(() => safeLoadJson('magicOps.plan', null));
   const [trips, setTrips] = useState([]);
   const [waitStatus, setWaitStatus] = useState(null);
   const [weatherStatus, setWeatherStatus] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [budgetTarget, setBudgetTarget] = useState(7000);
-  const [budgetScenarios, setBudgetScenarios] = useState([]);
-  const [selectedBudgetScenario, setSelectedBudgetScenario] = useState(null);
+  const [budgetTarget, setBudgetTarget] = useState(() => safeLoadJson('magicOps.budgetTarget', 7000));
+  const [budgetScenarios, setBudgetScenarios] = useState(() => safeLoadJson('magicOps.budgetScenarios', []));
+  const [selectedBudgetScenario, setSelectedBudgetScenario] = useState(() => safeLoadJson('magicOps.selectedBudgetScenario', null));
   const [dealMatches, setDealMatches] = useState([]);
   const [activeWatchOffer, setActiveWatchOffer] = useState(null);
   const [aiTripPrompt, setAiTripPrompt] = useState('We are a family of 5 with kids ages 2, 5, and 6. We want Disney World for 4 park days, some pool time, good character meals, and our budget is around $7,000. We do not want to overdo it.');
   const [aiTripPlan, setAiTripPlan] = useState(null);
   const [liveQuestion, setLiveQuestion] = useState('My kid is melting down and it is raining. What should we do?');
   const [liveAnswer, setLiveAnswer] = useState(null);
-  const [liveRoutesByDate, setLiveRoutesByDate] = useState({});
-  const [selectedLiveDate, setSelectedLiveDate] = useState('');
+  const [liveRoutesByDate, setLiveRoutesByDate] = useState(() => safeLoadJson('magicOps.liveRoutesByDate', {}));
+  const [selectedLiveDate, setSelectedLiveDate] = useState(() => safeLoadJson('magicOps.selectedLiveDate', ''));
     function update(key, value) { setForm(prev => ({ ...prev, [key]: value })); }
 
   function generateAITripPlan() {
@@ -1032,6 +1108,29 @@ function App() {
   }
 
   useEffect(()=>{ loadTrips(); }, []);
+
+  useEffect(() => { safeSaveJson('magicOps.form', form); }, [form]);
+  useEffect(() => { safeSaveJson('magicOps.plan', plan); }, [plan]);
+  useEffect(() => { safeSaveJson('magicOps.liveRoutesByDate', liveRoutesByDate); }, [liveRoutesByDate]);
+  useEffect(() => { safeSaveJson('magicOps.selectedLiveDate', selectedLiveDate); }, [selectedLiveDate]);
+  useEffect(() => { safeSaveJson('magicOps.budgetTarget', budgetTarget); }, [budgetTarget]);
+  useEffect(() => { safeSaveJson('magicOps.budgetScenarios', budgetScenarios); }, [budgetScenarios]);
+  useEffect(() => { safeSaveJson('magicOps.selectedBudgetScenario', selectedBudgetScenario); }, [selectedBudgetScenario]);
+
+  function clearLocalPlanningData() {
+    if (!window.confirm('Clear local planning data from this browser? This will not delete saved trips on the backend.')) return;
+    ['magicOps.form','magicOps.plan','magicOps.liveRoutesByDate','magicOps.selectedLiveDate','magicOps.budgetTarget','magicOps.budgetScenarios','magicOps.selectedBudgetScenario'].forEach(k => window.localStorage.removeItem(k));
+    window.location.reload();
+  }
+
+  function optimizeActiveRoute() {
+    const date = getActiveRouteDate();
+    setLiveRoutesByDate(prev => ({
+      ...prev,
+      [date]: optimizeRouteOrder(prev[date] || [])
+    }));
+  }
+
 
   return (
     <div className="page">
@@ -1424,6 +1523,7 @@ function App() {
     <button onClick={() => addRouteStop('Show')}>+ Show</button>
     <button onClick={() => addRouteStop('Break')}>+ Break</button>
     <button onClick={() => addRouteStop('Transportation')}>+ Transportation</button>
+    <button className="optimizeRouteButton" onClick={optimizeActiveRoute}>⚡ Optimize Route</button>
   </div>
 
   {getActiveRoute().length === 0 && (
@@ -1526,7 +1626,7 @@ function App() {
             </div>
             <div className="actions"><button onClick={exportPdf}>Download Weather PDF</button></div>
             <PlanSnapshot plan={plan} />
-            {plan.days.map((day,i)=><Day day={day} liveRoutesByDate={liveRoutesByDate} key={i}/>)}
+            {plan.days.map((day,i)=><Day day={day} liveRoutesByDate={liveRoutesByDate} waitStatus={waitStatus} key={i}/>)}
             <TripPackingChecklist plan={plan} />
             <div className="panel savePlanFooter">
               <h2>Save This Full Plan</h2>
@@ -1577,6 +1677,43 @@ function App() {
   );
 }
 
+
+
+function DayRouteTimeline({day, route = [], waitStatus}) {
+  if (!route || route.length === 0) return null;
+  const stress = routeStressLevel(route);
+  const next = suggestedNextMoveForDay(day, route, waitStatus);
+
+  return <div className="dayLiveRoute upgradedTimeline">
+    <div className="timelineHeader">
+      <div>
+        <h3>🧭 Park Route For This Day</h3>
+        <p className="softText">{next.title} — {next.detail}</p>
+      </div>
+      <span className={`routeStress ${stress.label}`}>{stress.label} stress</span>
+    </div>
+
+    <div className="routeTimeline">
+      {route.map((stop, i) => (
+        <div className={`timelineStop ${stop.done ? 'done' : ''}`} key={stop.id}>
+          <div className="timelineNumber">{i + 1}</div>
+          <div className="timelineBody">
+            <div className="timelineTop">
+              <b>{stop.time || 'Anytime'} · {stop.type}</b>
+              <button disabled={!stop.title} onClick={() => {
+                const query = encodeURIComponent(`${stop.title} ${day?.park || 'Walt Disney World'}`);
+                window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
+              }}>Map</button>
+            </div>
+            <h4>{stop.title || 'Untitled stop'}</h4>
+            {stop.type === 'Lightning Lane' && <em>Lightning Lane: {stop.lightningStart || '?'} – {stop.lightningEnd || '?'}</em>}
+            {stop.notes && <p>{stop.notes}</p>}
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+}
 
 function PlanSnapshot({plan}) {
   if (!plan) return null;
@@ -1782,22 +1919,7 @@ function Day({day, liveRoutesByDate = {}}) {
 
     <EmbeddedWeatherCard day={day} />
 
-    {liveRoutesByDate?.[day.date]?.length > 0 && (
-      <div className="dayLiveRoute">
-        <h3>🧭 Your Day Planner Route</h3>
-        {liveRoutesByDate[day.date].map((stop, i) => (
-          <div className={`dayRouteLine ${stop.done ? 'done' : ''}`} key={stop.id}>
-            <b>{i + 1}. {stop.time || 'Anytime'} — {stop.type}</b>
-            <span>{stop.title || 'Untitled stop'}</span>
-            {stop.type === 'Lightning Lane' && (
-              <em>{stop.lightningStart || 'LL start'} – {stop.lightningEnd || 'LL end'}</em>
-            )}
-            {stop.notes && <p>{stop.notes}</p>}
-            <a className="miniMapLink" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${stop.title} ${day.park || 'Walt Disney World'}`)}`} target="_blank" rel="noreferrer">Map</a>
-          </div>
-        ))}
-      </div>
-    )}
+    <DayRouteTimeline day={day} route={liveRoutesByDate?.[day.date] || []} waitStatus={waitStatus} />
 
 
     <div className={`meltdown m${day.meltdownPrediction.risk}`}>
