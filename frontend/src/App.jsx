@@ -1424,6 +1424,7 @@ function App() {
             <button onClick={()=>setTab('budget')}>Budget</button>
             <button onClick={()=>setTab('setup')}>Start Planning</button>
             <button onClick={()=>setTab('ai assistant')}>AI Assistant</button>
+            <button onClick={()=>setTab('day planner')}>Day Planner</button>
             <button onClick={()=>setTab('live')}>LIVE Mode</button>
           </div>
         </div>
@@ -1449,6 +1450,13 @@ function App() {
             </button>
           </div>
 
+          <div className="heroQuickActions">
+            <button onClick={()=>setTab('budget')}>💰 Budget Builder</button>
+            <button onClick={()=>setTab('setup')}>📝 Trip Setup</button>
+            <button onClick={()=>setTab('day planner')}>🧭 Day Planner</button>
+            <button onClick={()=>setTab('live')}>🚨 LIVE Mode</button>
+          </div>
+
           <div className="heroStats">
             <div><b>AI</b><span>Trip Builder</span></div>
             <div><b>LIVE</b><span>Park Mode</span></div>
@@ -1470,22 +1478,27 @@ function App() {
           Start with your budget and family style, build the park days, then use LIVE Mode when the day changes.
         </p>
 
-        <div className="stepCards">
-          <div className="stepCard">
+        <div className="stepCards clickableStepCards">
+          <button className="stepCard stepCardButton" onClick={()=>setTab('budget')}>
             <div className="stepIcon">💰</div>
             <h3>1. Build the trip</h3>
             <p>Use Budget, Setup, and AI Assistant to create the right trip for your family.</p>
-          </div>
-          <div className="stepCard">
+            <span className="cardCTA">Open Budget Builder →</span>
+          </button>
+
+          <button className="stepCard stepCardButton" onClick={()=>setTab('day planner')}>
             <div className="stepIcon">🧭</div>
             <h3>2. Route the day</h3>
             <p>Add rides, meals, shows, Lightning Lanes, breaks, and map links to each day.</p>
-          </div>
-          <div className="stepCard">
+            <span className="cardCTA">Open Day Planner →</span>
+          </button>
+
+          <button className="stepCard stepCardButton" onClick={()=>setTab('live')}>
             <div className="stepIcon">🚨</div>
             <h3>3. Go LIVE</h3>
             <p>Rain Mode, Meltdown Mode, walking load, wait times, and fast decision tools.</p>
-          </div>
+            <span className="cardCTA">Open LIVE Mode →</span>
+          </button>
         </div>
 
         <button className="landingCTA" onClick={()=>setTab('budget')}>Let’s Plan Your Trip</button>
