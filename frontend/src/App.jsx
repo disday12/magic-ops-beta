@@ -795,6 +795,150 @@ function optimizeRouteOrder(route) {
   });
 }
 
+
+const PARK_ROUTE_COORDS = {
+  'Magic Kingdom': {
+    default: { x: 50, y: 52 },
+    places: {
+      'Peter Pan': { x: 38, y: 31 },
+      'Peter Pan’s Flight': { x: 38, y: 31 },
+      'Small World': { x: 34, y: 28 },
+      "it's a small world": { x: 34, y: 28 },
+      'Haunted Mansion': { x: 28, y: 37 },
+      'Jungle Cruise': { x: 24, y: 55 },
+      'Pirates': { x: 18, y: 62 },
+      'Pirates of the Caribbean': { x: 18, y: 62 },
+      'Big Thunder': { x: 18, y: 42 },
+      'Tiana': { x: 20, y: 48 },
+      'Seven Dwarfs': { x: 58, y: 27 },
+      'Space Mountain': { x: 78, y: 31 },
+      'PeopleMover': { x: 72, y: 39 },
+      'Buzz': { x: 69, y: 45 },
+      'PhilharMagic': { x: 45, y: 35 },
+      'Mickey’s PhilharMagic': { x: 45, y: 35 },
+      'Carousel of Progress': { x: 76, y: 47 },
+      'Crystal Palace': { x: 46, y: 57 },
+      'Pecos Bill': { x: 24, y: 58 },
+      'Columbia Harbour House': { x: 31, y: 40 },
+      'Casey’s Corner': { x: 52, y: 66 },
+      'Skipper Canteen': { x: 29, y: 56 }
+    },
+    lands: [
+      { label: 'Adventureland', x: 22, y: 58 },
+      { label: 'Frontierland', x: 18, y: 43 },
+      { label: 'Liberty Square', x: 30, y: 39 },
+      { label: 'Fantasyland', x: 47, y: 29 },
+      { label: 'Tomorrowland', x: 73, y: 40 },
+      { label: 'Hub', x: 50, y: 52 }
+    ]
+  },
+  'EPCOT': {
+    default: { x: 50, y: 50 },
+    places: {
+      'Spaceship Earth': { x: 50, y: 20 },
+      'Soarin': { x: 32, y: 38 },
+      'Soarin’': { x: 32, y: 38 },
+      'Living with the Land': { x: 34, y: 42 },
+      'Nemo': { x: 27, y: 50 },
+      'Turtle Talk': { x: 26, y: 54 },
+      'Test Track': { x: 69, y: 38 },
+      'Mission Space': { x: 63, y: 35 },
+      'Guardians': { x: 59, y: 30 },
+      'Frozen': { x: 59, y: 72 },
+      'Remy': { x: 36, y: 77 },
+      'American Adventure': { x: 50, y: 78 },
+      'Garden Grill': { x: 34, y: 39 },
+      'Sunshine Seasons': { x: 35, y: 43 }
+    },
+    lands: [
+      { label: 'World Nature', x: 31, y: 45 },
+      { label: 'World Discovery', x: 65, y: 36 },
+      { label: 'World Celebration', x: 50, y: 24 },
+      { label: 'World Showcase', x: 50, y: 73 }
+    ]
+  },
+  'Hollywood Studios': {
+    default: { x: 50, y: 50 },
+    places: {
+      'Rise of the Resistance': { x: 28, y: 36 },
+      'Millennium Falcon': { x: 23, y: 43 },
+      'Slinky Dog': { x: 67, y: 34 },
+      'Toy Story Mania': { x: 70, y: 40 },
+      'Alien Swirling Saucers': { x: 73, y: 45 },
+      'Runaway Railway': { x: 50, y: 27 },
+      'Mickey & Minnie’s Runaway Railway': { x: 50, y: 27 },
+      'Tower of Terror': { x: 71, y: 68 },
+      'Rock n Roller': { x: 76, y: 72 },
+      'Beauty and the Beast': { x: 68, y: 62 },
+      'Muppet': { x: 33, y: 58 },
+      'Brown Derby': { x: 48, y: 40 },
+      'Docking Bay 7': { x: 26, y: 41 },
+      'Ronto Roasters': { x: 27, y: 45 }
+    },
+    lands: [
+      { label: 'Galaxy’s Edge', x: 26, y: 41 },
+      { label: 'Toy Story Land', x: 70, y: 39 },
+      { label: 'Hollywood Blvd', x: 50, y: 29 },
+      { label: 'Sunset Blvd', x: 72, y: 67 },
+      { label: 'Echo Lake', x: 43, y: 48 }
+    ]
+  },
+  'Animal Kingdom': {
+    default: { x: 50, y: 50 },
+    places: {
+      'Flight of Passage': { x: 28, y: 44 },
+      'Na’vi River Journey': { x: 25, y: 50 },
+      'Safari': { x: 66, y: 36 },
+      'Kilimanjaro Safaris': { x: 66, y: 36 },
+      'Everest': { x: 72, y: 62 },
+      'Expedition Everest': { x: 72, y: 62 },
+      'Dinosaur': { x: 54, y: 72 },
+      'Finding Nemo': { x: 61, y: 66 },
+      'Festival of the Lion King': { x: 58, y: 43 },
+      'Tusker House': { x: 57, y: 39 },
+      'Satu’li Canteen': { x: 30, y: 48 },
+      'Flame Tree': { x: 47, y: 55 }
+    },
+    lands: [
+      { label: 'Pandora', x: 28, y: 48 },
+      { label: 'Africa', x: 60, y: 39 },
+      { label: 'Asia', x: 70, y: 62 },
+      { label: 'DinoLand', x: 55, y: 72 },
+      { label: 'Discovery Island', x: 48, y: 54 }
+    ]
+  }
+};
+
+function normalizePlaceName(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[’']/g, '')
+    .replace(/[^a-z0-9 ]/g, '')
+    .trim();
+}
+
+function coordinateForStop(stop, park) {
+  const parkData = PARK_ROUTE_COORDS[park] || PARK_ROUTE_COORDS['Magic Kingdom'];
+  const target = normalizePlaceName(stop.title);
+  const entries = Object.entries(parkData.places || {});
+  const exact = entries.find(([name]) => normalizePlaceName(name) === target);
+  if (exact) return exact[1];
+
+  const fuzzy = entries.find(([name]) => {
+    const n = normalizePlaceName(name);
+    return target.includes(n) || n.includes(target);
+  });
+  if (fuzzy) return fuzzy[1];
+
+  const index = Math.abs((target || 'stop').split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0));
+  const angle = (index % 360) * Math.PI / 180;
+  return {
+    x: Math.round(50 + Math.cos(angle) * 22),
+    y: Math.round(52 + Math.sin(angle) * 20)
+  };
+}
+
+
 function App() {
   const [tab, setTab] = useState('setup');
   const [form, setForm] = useState(() => safeLoadJson('magicOps.form', {
@@ -1726,6 +1870,75 @@ function App() {
 
 
 
+
+function ParkRouteMap({day, route = []}) {
+  if (!route || route.length === 0) return null;
+
+  const park = day?.park || 'Magic Kingdom';
+  const parkData = PARK_ROUTE_COORDS[park] || PARK_ROUTE_COORDS['Magic Kingdom'];
+  const plotted = route.map((stop, index) => ({
+    ...stop,
+    index,
+    coord: coordinateForStop(stop, park)
+  }));
+
+  const points = plotted.map(p => `${p.coord.x},${p.coord.y}`).join(' ');
+
+  return <div className="parkRouteMapCard">
+    <div className="mapHeader">
+      <div>
+        <h3>🗺️ Park Route Map</h3>
+        <p className="softText">Zero-cost visual route map. Approximate locations only — use Map buttons for real navigation.</p>
+      </div>
+      <span>{park}</span>
+    </div>
+
+    <div className={`parkMapCanvas ${park.replace(/\s+/g, '')}`}>
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="routeSvg">
+        <defs>
+          <linearGradient id="routeLineGradient" x1="0" x2="1">
+            <stop offset="0%" stopColor="#fbbf24" />
+            <stop offset="100%" stopColor="#38bdf8" />
+          </linearGradient>
+        </defs>
+
+        <path d="M50 50 C35 35, 65 30, 75 48 C88 70, 58 86, 38 75 C15 62, 18 34, 50 50" className="parkBlob" />
+
+        {parkData.lands?.map((land, i) => (
+          <g key={i}>
+            <circle cx={land.x} cy={land.y} r="9" className="landBubble" />
+          </g>
+        ))}
+
+        {plotted.length > 1 && <polyline points={points} className="routeLine" />}
+
+        {plotted.map((p) => (
+          <g key={p.id || p.index}>
+            <circle cx={p.coord.x} cy={p.coord.y} r="4.3" className={`routePin ${p.done ? 'done' : ''}`} />
+            <text x={p.coord.x} y={p.coord.y + 1.5} textAnchor="middle" className="routePinText">{p.index + 1}</text>
+          </g>
+        ))}
+      </svg>
+
+      <div className="mapLandLabels">
+        {parkData.lands?.map((land, i) => (
+          <span key={i} style={{ left: `${land.x}%`, top: `${land.y}%` }}>{land.label}</span>
+        ))}
+      </div>
+    </div>
+
+    <div className="mapLegend">
+      {plotted.map(p => (
+        <div key={p.id || p.index}>
+          <b>{p.index + 1}</b>
+          <span>{p.title || p.type}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+}
+
+
 function DayRouteTimeline({day, route = []}) {
   if (!route || route.length === 0) return null;
   const stress = routeStressLevel(route);
@@ -1739,6 +1952,8 @@ function DayRouteTimeline({day, route = []}) {
       </div>
       <span className={`routeStress ${stress.label}`}>{stress.label} stress</span>
     </div>
+
+    <ParkRouteMap day={day} route={route} />
 
     <div className="routeTimeline">
       {route.map((stop, i) => (
