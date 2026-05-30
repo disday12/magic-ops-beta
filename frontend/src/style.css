@@ -2244,3 +2244,85 @@ body{
     grid-template-columns:1fr;
   }
 }
+
+/* Clickable landing navigation upgrades */
+.stepCardButton{
+  width:100%;
+  border:none;
+  text-align:center;
+  cursor:pointer;
+  font-family:inherit;
+  color:inherit;
+  position:relative;
+  overflow:hidden;
+  transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+
+.stepCardButton:hover{
+  transform:translateY(-5px);
+  box-shadow:0 20px 46px rgba(15,23,42,.16);
+  border-color:#38bdf8;
+}
+
+.stepCardButton:after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(90deg, transparent, rgba(56,189,248,.12), transparent);
+  transform:translateX(-120%);
+  transition:transform .5s ease;
+}
+
+.stepCardButton:hover:after{
+  transform:translateX(120%);
+}
+
+.cardCTA{
+  display:inline-block;
+  margin-top:16px;
+  color:#0284c7;
+  font-weight:950;
+  position:relative;
+  z-index:2;
+}
+
+.heroQuickActions{
+  max-width:760px;
+  margin:16px auto 0;
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:10px;
+}
+
+.heroQuickActions button{
+  border:1px solid rgba(255,255,255,.18);
+  background:rgba(2,6,23,.42);
+  color:#f8fafc;
+  border-radius:999px;
+  padding:11px 13px;
+  font-weight:950;
+  cursor:pointer;
+  backdrop-filter:blur(12px);
+  transition:transform .18s ease, background .18s ease;
+}
+
+.heroQuickActions button:hover{
+  transform:translateY(-2px);
+  background:rgba(255,255,255,.14);
+}
+
+.navLinks button{
+  white-space:nowrap;
+}
+
+@media(max-width:950px){
+  .heroQuickActions{
+    grid-template-columns:1fr 1fr;
+  }
+}
+
+@media(max-width:560px){
+  .heroQuickActions{
+    grid-template-columns:1fr;
+  }
+}
